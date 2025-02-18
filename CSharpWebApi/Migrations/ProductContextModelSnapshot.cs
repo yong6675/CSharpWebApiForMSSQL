@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CSharpWebApi.Migrations
 {
-    [DbContext(typeof(ProductContext))]
+    [DbContext(typeof(ProductDbContext))]
     partial class ProductContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

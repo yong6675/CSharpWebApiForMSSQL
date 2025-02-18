@@ -8,37 +8,37 @@ namespace CSharpWebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProductController(ProductContext context) : Controller
+    public class ProductController(ProductDbContext dbContext) : Controller
     {
         // GET: api/GetProducts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            var products = await context.Products.ToListAsync();
+            var products = await dbContext.Products.ToListAsync();
             return Ok(products);
         }
 
         // GET: api/GetProduct/5
         // <snippet_GetByID>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProductDTO>> GetProduct(int id)
+        public async Task<ActionResult<ProductDto>> GetProduct(int id)
         {
-            var product = await context.Products.FindAsync(id);
+            var product = await dbContext.Products.FindAsync(id);
 
             if (product == null) return NotFound();
 
             return Ok(ProductToDTO(product));
         }
 
-        // GET: api/CreateProduct
+        // POST: api/CreateProduct
         [HttpPost]
-        public async Task<ActionResult<ProductDTO>> CreateProduct([FromBody] ProductDTO dto)
+        public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] ProductDto dto)
         {
-            var product = dto.DTOToProduct();
+            var product = dto.DtoToProduct();
             if (product == null) return NotFound();
 
-            context.Products.Add(product);
-            await context.SaveChangesAsync();
+            dbContext.Products.Add(product);
+            await dbContext.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
@@ -51,18 +51,18 @@ namespace CSharpWebApi.Controllers
             {
                 return BadRequest();
             }
-            var existingProduct = await context.Products.FindAsync(id);
+            var existingProduct = await dbContext.Products.FindAsync(id);
             if (existingProduct == null)
             {
                 return NotFound();
             }
 
-            context.Entry(existingProduct).CurrentValues.SetValues(product);
+            dbContext.Entry(existingProduct).CurrentValues.SetValues(product);
 
             //_context.Entry(product).State = EntityState.Modified;
             try
             {
-                await context.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -78,23 +78,23 @@ namespace CSharpWebApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
-            var product = await context.Products.FindAsync(id);
+            var product = await dbContext.Products.FindAsync(id);
             if (product == null)
             {
                 return NotFound();
             }
-            context.Products.Remove(product);
-            await context.SaveChangesAsync();
+            dbContext.Products.Remove(product);
+            await dbContext.SaveChangesAsync();
             return NoContent();
         }
 
 
         private bool ProductExists(int id)
         {
-            return context.Products.AsNoTracking().Any(e => e.Id == id);
+            return dbContext.Products.AsNoTracking().Any(e => e.Id == id);
         }
 
-        private static ProductDTO ProductToDTO(Product todoItem) =>
+        private static ProductDto ProductToDTO(Product todoItem) =>
             new()
             {
                 Name = todoItem.Name,

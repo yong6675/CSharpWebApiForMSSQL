@@ -13,20 +13,20 @@ namespace CSharpWebApi.Test
 {
     public class ProductApiTest
     {
-        private readonly ProductContext _dbContext;
+        private readonly ProductDbContext _dbDbContext;
         private readonly ProductController _controller;
 
         public ProductApiTest()
         {
-            _dbContext = InMemoryContextGenerator.Generate<ProductContext>();
-            _controller = new ProductController(_dbContext);
+            _dbDbContext = InMemoryContextGenerator.Generate<ProductDbContext>();
+            _controller = new ProductController(_dbDbContext);
 
             // Initialize the in-memory database
-            _dbContext.Products.AddRange(
+            _dbDbContext.Products.AddRange(
                 new Product { Id = 1, Name = "Product1", Price = 100 },
                 new Product { Id = 2, Name = "Product2", Price = 200 }
             );
-            _dbContext.SaveChanges();
+            _dbDbContext.SaveChanges();
         }
 
         [Fact]
@@ -50,10 +50,10 @@ namespace CSharpWebApi.Test
             var result = await _controller.GetProduct(1);
 
             // validate result
-            var actionResult = Assert.IsType<ActionResult<ProductDTO>>(result);
+            var actionResult = Assert.IsType<ActionResult<ProductDto>>(result);
             Assert.NotNull(actionResult.Result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var product = Assert.IsType<ProductDTO>(okResult.Value);
+            var product = Assert.IsType<ProductDto>(okResult.Value);
             Assert.Equal("Product1", product.Name);
         }
 
@@ -70,12 +70,12 @@ namespace CSharpWebApi.Test
         [Fact]
         public async Task CreateProduct_AddCorrectProduct()
         {
-            var newProduct = new ProductDTO { Name = "Product3", Price = 300 };
+            var newProduct = new ProductDto { Name = "Product3", Price = 300 };
             // run request
             var result = await _controller.CreateProduct(newProduct);
 
             // validate result
-            var actionResult = Assert.IsType<ActionResult<ProductDTO>>(result);
+            var actionResult = Assert.IsType<ActionResult<ProductDto>>(result);
             Assert.NotNull(actionResult.Result);
             var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(actionResult.Result);
             var product = Assert.IsType<Product>(createdAtActionResult.Value);
@@ -83,14 +83,14 @@ namespace CSharpWebApi.Test
             Assert.Equal(newProduct.Price, product.Price);
 
             // validate database
-            var products = await _dbContext.Products.ToListAsync();
+            var products = await _dbDbContext.Products.ToListAsync();
             Assert.Equal(3, products.Count);
         }
 
         [Fact]
         public void CreateProduct_AddWrongProduct()
         {
-            var invalidProduct = new ProductDTO { Name = "", Price = -10 };
+            var invalidProduct = new ProductDto { Name = "", Price = -10 };
 
             // **手动触发 ModelState 验证**
             _controller.ModelState.Clear();
@@ -122,7 +122,7 @@ namespace CSharpWebApi.Test
             // validate result
             Assert.IsType<NoContentResult>(result);
             // validate database
-            var product = await _dbContext.Products.FindAsync(1);
+            var product = await _dbDbContext.Products.FindAsync(1);
             Assert.Equal(updatedProduct.Name, product?.Name);
             Assert.Equal(updatedProduct.Price, product?.Price);
         }
@@ -155,7 +155,7 @@ namespace CSharpWebApi.Test
             // validate result
             Assert.IsType<NoContentResult>(result);
             // validate database
-            var products = await _dbContext.Products.ToListAsync();
+            var products = await _dbDbContext.Products.ToListAsync();
             Assert.Single(products);
         }
 

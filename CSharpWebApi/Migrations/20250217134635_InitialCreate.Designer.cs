@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CSharpWebApi.Migrations
 {
-    [DbContext(typeof(ProductContext))]
+    [DbContext(typeof(ProductDbContext))]
     [Migration("20250217134635_InitialCreate")]
     partial class InitialCreate
     {

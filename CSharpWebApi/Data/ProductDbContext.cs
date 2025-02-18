@@ -4,7 +4,7 @@ using System;
 
 namespace CSharpWebApi.Data
 {
-    public class ProductContext(DbContextOptions<ProductContext> options) : DbContext(options)
+    public class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbContext(options)
     {
         public DbSet<Product> Products { get; set; }
 
