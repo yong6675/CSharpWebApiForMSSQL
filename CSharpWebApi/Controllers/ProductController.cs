@@ -8,13 +8,14 @@ namespace CSharpWebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProductController(AppDbContext dbContext) : Controller
+    public class ProductController(AppDbContext dbContext, ILogger<ProductController> logger) : Controller
     {
         // GET: api/GetProducts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
             var products = await dbContext.Products.ToListAsync();
+            logger.LogInformation("Get Products is working.");
             return Ok(products);
         }
 
@@ -25,8 +26,12 @@ namespace CSharpWebApi.Controllers
         {
             var product = await dbContext.Products.FindAsync(id);
 
-            if (product == null) return NotFound();
-
+            if (product == null)
+            {
+                logger.LogError($"Failed to get product {id}.");
+                return NotFound();
+            }
+            logger.LogInformation($"Product {id} get successfully.");
             return Ok(ProductToDTO(product));
         }
 
@@ -35,11 +40,15 @@ namespace CSharpWebApi.Controllers
         public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] ProductDto dto)
         {
             var product = dto.DtoToProduct();
-            if (product == null) return NotFound();
+            if (product == null)
+            {
+                logger.LogError($"Failed to create product.");
+                return NotFound();
+            }
 
             dbContext.Products.Add(product);
             await dbContext.SaveChangesAsync();
-
+            logger.LogInformation($"Product {product.Id} created successfully.");
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
 
@@ -49,25 +58,28 @@ namespace CSharpWebApi.Controllers
         {
             if (id != product.Id)
             {
+                logger.LogError($"Updated record Id not match with product data Id.");
                 return BadRequest();
             }
             var existingProduct = await dbContext.Products.FindAsync(id);
             if (existingProduct == null)
             {
+                logger.LogError($"Failed to update product {id}, not found record");
                 return NotFound();
             }
 
             dbContext.Entry(existingProduct).CurrentValues.SetValues(product);
 
-            //_context.Entry(product).State = EntityState.Modified;
             try
             {
                 await dbContext.SaveChangesAsync();
+                logger.LogInformation($"Product {product.Id} updated successfully.");
             }
             catch (DbUpdateConcurrencyException)
             {
                 if (!ProductExists(id))
                 {
+                    logger.LogError($"Failed to update product {id}, not found record");
                     return NotFound();
                 }
             }
@@ -81,10 +93,12 @@ namespace CSharpWebApi.Controllers
             var product = await dbContext.Products.FindAsync(id);
             if (product == null)
             {
+                logger.LogError($"Failed to delete product {id}, not found record");
                 return NotFound();
             }
             dbContext.Products.Remove(product);
             await dbContext.SaveChangesAsync();
+            logger.LogInformation($"Product {product.Id} delete successfully.");
             return NoContent();
         }
 

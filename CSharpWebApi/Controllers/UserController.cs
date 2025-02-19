@@ -12,21 +12,12 @@ namespace CSharpWebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]/[action]")]
-    public class UserController : Controller
+    public class UserController(AppDbContext dbContext, IConfiguration configuration) : Controller
     {
-        private readonly AppDbContext _dbContext;
-        private readonly IConfiguration _configuration;
-
-        public UserController(AppDbContext dbContext, IConfiguration configuration)
-        {
-            _dbContext = dbContext;
-            _configuration = configuration;
-        }
-
         [HttpPost]
         public IActionResult Register([FromBody] UserRegisterDto userRegister)
         {
-            if (_dbContext.Users.Any(u=>u.Username == userRegister.Username))
+            if (dbContext.Users.Any(u=>u.Username == userRegister.Username))
             {
                 return BadRequest("Username already exists");
             }
@@ -38,8 +29,8 @@ namespace CSharpWebApi.Controllers
                 Role = userRegister.Role ?? "User"
             };
 
-            _dbContext.Users.Add(user); 
-            _dbContext.SaveChanges();
+            dbContext.Users.Add(user); 
+            dbContext.SaveChanges();
             
             return Ok("User registered successfully");
         }
@@ -47,7 +38,7 @@ namespace CSharpWebApi.Controllers
         [HttpPost]
         public IActionResult Login([FromBody] UserLoginDto userLogin)
         {
-            var existingUser = _dbContext.Users.FirstOrDefault(u => u.Username == userLogin.Username);
+            var existingUser = dbContext.Users.FirstOrDefault(u => u.Username == userLogin.Username);
             if (existingUser == null)
             {
                 return BadRequest("Invalid username or password");
@@ -65,7 +56,7 @@ namespace CSharpWebApi.Controllers
         public IActionResult GetCurrentUser()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty);
-            var user = _dbContext.Users.Find(userId);
+            var user = dbContext.Users.Find(userId);
 
             if (user == null) return NotFound("User not found");
 
@@ -74,7 +65,7 @@ namespace CSharpWebApi.Controllers
 
         private string GenerateJwtToken(User user)
         {
-            var jwtSettings = _configuration.GetSection("Jwt");
+            var jwtSettings = configuration.GetSection("Jwt");
             var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? string.Empty);
 
             var tokenDescriptor = new SecurityTokenDescriptor

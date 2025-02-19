@@ -6,18 +6,33 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CSharpWebApi.Test.TestContext;
 using System.ComponentModel.DataAnnotations;
+using Serilog;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace CSharpWebApi.Test.Tests
 {
-    public class ProductApiTest
+    public class ProductApiTest : IDisposable
     {
         private readonly AppDbContext _dbDbContext;
         private readonly ProductController _controller;
+        private readonly Mock<ILogger<ProductController>> _mockLogger;
 
         public ProductApiTest()
         {
+            // Initialize Serilog
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File("logs/test-log.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+            _mockLogger = new Mock<ILogger<ProductController>>();
+
             _dbDbContext = InMemoryContextGenerator.Generate<AppDbContext>();
-            _controller = new ProductController(_dbDbContext);
+            _controller = new ProductController(_dbDbContext, _mockLogger.Object);
 
             // Initialize the in-memory database
             _dbDbContext.Products.AddRange(
@@ -39,6 +54,16 @@ namespace CSharpWebApi.Test.Tests
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
             var products = Assert.IsType<List<Product>>(okResult.Value);
             Assert.Equal(2, products.Count);
+
+            // validate log's output
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Get Products is working.")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)!),
+                Times.Once);
         }
 
         [Fact]
@@ -166,5 +191,10 @@ namespace CSharpWebApi.Test.Tests
             Assert.IsType<NotFoundResult>(result);
         }
 
+        public void Dispose()
+        {
+            // Clear Serilog
+            Log.CloseAndFlush();
+        }
     }
 }
