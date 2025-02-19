@@ -4,21 +4,19 @@ using CSharpWebApi.DTOs;
 using CSharpWebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
 using CSharpWebApi.Test.TestContext;
-using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
 
-namespace CSharpWebApi.Test
+namespace CSharpWebApi.Test.Tests
 {
     public class ProductApiTest
     {
-        private readonly ProductDbContext _dbDbContext;
+        private readonly AppDbContext _dbDbContext;
         private readonly ProductController _controller;
 
         public ProductApiTest()
         {
-            _dbDbContext = InMemoryContextGenerator.Generate<ProductDbContext>();
+            _dbDbContext = InMemoryContextGenerator.Generate<AppDbContext>();
             _controller = new ProductController(_dbDbContext);
 
             // Initialize the in-memory database

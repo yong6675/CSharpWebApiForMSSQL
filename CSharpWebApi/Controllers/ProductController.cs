@@ -8,7 +8,7 @@ namespace CSharpWebApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProductController(ProductDbContext dbContext) : Controller
+    public class ProductController(AppDbContext dbContext) : Controller
     {
         // GET: api/GetProducts
         [HttpGet]
