@@ -45,15 +45,24 @@ namespace CSharpWebApi.Test.Tests
         [Fact]
         public async Task GetProducts_ListOfProducts()
         {
+            var rand = new Random();
+            for (var i = 3; i < 50; i++)
+            {
+                _dbDbContext.Products.Add(
+                    new Product { Id = i, Name = $"Product{i}", Price = rand.Next(100,1001) }
+                );
+                await _dbDbContext.SaveChangesAsync();
+            }
+
             // run request
             var result = await _controller.GetProducts();
 
             // validate result
-            var actionResult = Assert.IsType<ActionResult<IEnumerable<Product>>>(result);
+            var actionResult = Assert.IsType<ActionResult<PageResult<Product>>>(result);
             Assert.NotNull(actionResult.Result);
             var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
-            var products = Assert.IsType<List<Product>>(okResult.Value);
-            Assert.Equal(2, products.Count);
+            var products = Assert.IsType<PageResult<Product>>(okResult.Value);
+            Assert.Equal(49, products.TotalCount);
 
             // validate log's output
             _mockLogger.Verify(

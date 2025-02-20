@@ -14,6 +14,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+// Setup cache
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("Products", policyBuilder =>
+        policyBuilder.Expire(TimeSpan.FromMinutes(5)));
+});
+
 // Setup Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()

@@ -3,7 +3,9 @@ using CSharpWebApi.DTOs;
 using CSharpWebApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace CSharpWebApi.Controllers
 {
@@ -14,11 +16,65 @@ namespace CSharpWebApi.Controllers
         // GET: api/GetProducts
         [HttpGet]
         [Authorize(Roles = "User,Admin")]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        [OutputCache(PolicyName = "Products")]
+        [SwaggerOperation(Description = "Get products with pagination and sorting")]
+        public async Task<ActionResult<PageResult<Product>>> GetProducts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery, SwaggerParameter(Description = "Sort field (id/name/price)")] string sortBy = "id",
+            [FromQuery] string order = "asc")
         {
-            var products = await dbContext.Products.ToListAsync();
+            // Validate parameters
+            if (page < 1) page = 1;
+            if (pageSize is < 1 or > 100) pageSize = 10;
+
+            var query = dbContext.Products.AsNoTracking();
+
+            // Sorting dynamically
+            var allowedSortFields = new[] { "id", "name", "price" };
+            var isValidSort = allowedSortFields.Contains(sortBy, StringComparer.OrdinalIgnoreCase);
+
+            if (!isValidSort) sortBy = "id";
+
+            query = order.ToLower() switch
+            {
+                "desc" => sortBy.ToLower() switch
+                {
+                    "price" => query.OrderByDescending(p => p.Price),
+                    "name" => query.OrderByDescending(p => p.Name),
+                    _ => query.OrderByDescending(p => p.Id)
+                },
+                _ => sortBy.ToLower() switch
+                {
+                    "price" => query.OrderBy(p => p.Price),
+                    "name" => query.OrderBy(p => p.Name),
+                    _ => query.OrderBy(p => p.Id)
+                }
+            };
+
+            // Count total records
+            var totalCount = await query.CountAsync();
+
+            // Count pages
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            page = Math.Min(page, totalPages > 0 ? totalPages : 1);
+
+            // Execute query
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             logger.LogInformation("Get Products is working.");
-            return Ok(products);
+
+            return Ok(new PageResult<Product>
+            {
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                PageIndex = page,
+                PageSize = pageSize,
+                Data = items
+            });
         }
 
         // GET: api/GetProduct/5
