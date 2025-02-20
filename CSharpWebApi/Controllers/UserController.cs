@@ -63,6 +63,22 @@ namespace CSharpWebApi.Controllers
             return Ok(user?.UserToDto());
         }
 
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")] // 仅允许 Admin 访问
+        public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateRoleDto role)
+        {
+            var user = await dbContext.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            user.Role = role.Role;
+            await dbContext.SaveChangesAsync();
+
+            return Ok(new { Message = $"User {id} role updated to {role.Role}" });
+        }
+
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = configuration.GetSection("Jwt");

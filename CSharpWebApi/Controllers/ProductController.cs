@@ -1,6 +1,7 @@
 ﻿using CSharpWebApi.Data;
 using CSharpWebApi.DTOs;
 using CSharpWebApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +13,7 @@ namespace CSharpWebApi.Controllers
     {
         // GET: api/GetProducts
         [HttpGet]
+        [Authorize(Roles = "User,Admin")]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
             var products = await dbContext.Products.ToListAsync();
@@ -22,6 +24,7 @@ namespace CSharpWebApi.Controllers
         // GET: api/GetProduct/5
         // <snippet_GetByID>
         [HttpGet("{id}")]
+        [Authorize(Roles = "User,Admin")]
         public async Task<ActionResult<ProductDto>> GetProduct(int id)
         {
             var product = await dbContext.Products.FindAsync(id);
@@ -37,6 +40,7 @@ namespace CSharpWebApi.Controllers
 
         // POST: api/CreateProduct
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] ProductDto dto)
         {
             var product = dto.DtoToProduct();
@@ -54,6 +58,7 @@ namespace CSharpWebApi.Controllers
 
         // PUT: api/UpdateProduct/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateProduct(int id, Product product)
         {
             if (id != product.Id)
@@ -88,6 +93,7 @@ namespace CSharpWebApi.Controllers
 
         // DELETE: api/DeleteProduct/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await dbContext.Products.FindAsync(id);

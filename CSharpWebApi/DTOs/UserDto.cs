@@ -28,4 +28,10 @@ namespace CSharpWebApi.DTOs
         [Required]
         public string Password { get; set; } = string.Empty;
     }
+
+    public class UpdateRoleDto
+    {
+        [Required]
+        public string Role { get; set; } = "User";
+    }
 }
