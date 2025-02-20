@@ -40,7 +40,20 @@ namespace CSharpWebApi.Test.Tests
             _mockConfiguration = new Mock<IConfiguration>();
             _mockConfiguration.Setup(x => x.GetSection("Jwt")).Returns(mockConfigurationSection.Object);
 
-            _controller = new UserController(_dbDbContext, _mockConfiguration.Object);
+            // Simulate user authorized
+            var user = new ClaimsPrincipal(new ClaimsIdentity([
+                new Claim(ClaimTypes.NameIdentifier, "1"),
+                new Claim(ClaimTypes.Name, "TestUser"),
+                new Claim(ClaimTypes.Role, "Admin")
+            ], "TestAuthentication"));
+
+            _controller = new UserController(_dbDbContext, _mockConfiguration.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext { User = user }
+                }
+            };
         }
 
         [Fact]
@@ -135,29 +148,14 @@ namespace CSharpWebApi.Test.Tests
         [Fact]
         public void GetCurrentUser_IsAuthorize()
         {
-            // Simulate user authorized
-            var user = new ClaimsPrincipal(new ClaimsIdentity([
-                new Claim(ClaimTypes.NameIdentifier, "1"),
-                new Claim(ClaimTypes.Name, "TestUser"),
-                new Claim(ClaimTypes.Role, "User")
-            ], "TestAuthentication"));
-
-            var controller = new UserController(_dbDbContext, _mockConfiguration.Object)
-            {
-                ControllerContext = new ControllerContext
-                {
-                    HttpContext = new DefaultHttpContext { User = user }
-                }
-            };
-
             var userRegister = new UserRegisterDto
             {
                 Username = "TestUser",
                 Password = "TestPassword"
             };
             // run request
-            controller.Register(userRegister);
-            var result = controller.GetCurrentUser();
+            _controller.Register(userRegister);
+            var result = _controller.GetCurrentUser();
 
             // validate result
             var okResult = result as OkObjectResult;
@@ -169,29 +167,8 @@ namespace CSharpWebApi.Test.Tests
         [Fact]
         public void GetCurrentUser_UserNotFound()
         {
-            // Simulate user authorized
-            var user = new ClaimsPrincipal(new ClaimsIdentity([
-                new Claim(ClaimTypes.NameIdentifier, "2"),
-                new Claim(ClaimTypes.Name, "TestUser"),
-                new Claim(ClaimTypes.Role, "User")
-            ], "TestAuthentication"));
-
-            var controller = new UserController(_dbDbContext, _mockConfiguration.Object)
-            {
-                ControllerContext = new ControllerContext
-                {
-                    HttpContext = new DefaultHttpContext { User = user }
-                }
-            };
-
-            var userRegister = new UserRegisterDto
-            {
-                Username = "Test",
-                Password = "TestPassword"
-            };
             // run request
-            controller.Register(userRegister);
-            var result = controller.GetCurrentUser();
+            var result = _controller.GetCurrentUser();
 
             // validate result
             Assert.IsType<NotFoundObjectResult>(result);
@@ -200,34 +177,19 @@ namespace CSharpWebApi.Test.Tests
         [Fact]
         public async Task UpdateUserRole_UpdateCorrectRole()
         {
-            // Simulate user authorized
-            var user = new ClaimsPrincipal(new ClaimsIdentity([
-                new Claim(ClaimTypes.NameIdentifier, "2"),
-                new Claim(ClaimTypes.Name, "TestUser"),
-                new Claim(ClaimTypes.Role, "Admin")
-            ], "TestAuthentication"));
-
-            var controller = new UserController(_dbDbContext, _mockConfiguration.Object)
-            {
-                ControllerContext = new ControllerContext
-                {
-                    HttpContext = new DefaultHttpContext { User = user }
-                }
-            };
-
             var userRegister = new UserRegisterDto
             {
                 Username = "TestUser",
                 Password = "TestPassword"
             };
             // run request
-            controller.Register(userRegister);
+            _controller.Register(userRegister);
             var getUser = _dbDbContext.Users.FirstOrDefault(u => u.Username == userRegister.Username);
             var role = new UpdateRoleDto
             {
                 Role = "Admin"
             };
-            var result = await controller.UpdateUserRole(getUser.Id, role);
+            var result = await _controller.UpdateUserRole(getUser.Id, role);
             // validate result
             Assert.IsType<OkObjectResult>(result);
         }
@@ -235,25 +197,12 @@ namespace CSharpWebApi.Test.Tests
         [Fact]
         public async Task UpdateUserRole_UserNotFound()
         {
-            // Simulate user authorized
-            var user = new ClaimsPrincipal(new ClaimsIdentity([
-                new Claim(ClaimTypes.NameIdentifier, "2"),
-                new Claim(ClaimTypes.Name, "TestUser"),
-                new Claim(ClaimTypes.Role, "Admin")
-            ], "TestAuthentication"));
-            var controller = new UserController(_dbDbContext, _mockConfiguration.Object)
-            {
-                ControllerContext = new ControllerContext
-                {
-                    HttpContext = new DefaultHttpContext { User = user }
-                }
-            };
             // run request
             var role = new UpdateRoleDto
             {
                 Role = "Admin"
             };
-            var result = await controller.UpdateUserRole(3, role);
+            var result = await _controller.UpdateUserRole(3, role);
             // validate result
             Assert.IsType<NotFoundObjectResult>(result);
         }
